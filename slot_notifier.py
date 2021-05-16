@@ -61,12 +61,11 @@ class GracefulKiller:
 class VaccineSlotFinder:
     def __init__(self, state, district):
         chrome_options = Options()
-        chrome_options.add_argument("start-maximized")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument("--verbose")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--whitelisted-ips=""')
         chrome_options.add_argument('--window-size=1280x1696')
         chrome_options.add_argument('--user-data-dir=/tmp/user-data')
         chrome_options.add_argument('--hide-scrollbars')
@@ -78,6 +77,7 @@ class VaccineSlotFinder:
         chrome_options.add_argument('--ignore-certificate-errors')
         chrome_options.add_argument('--homedir=/tmp')
         chrome_options.add_argument('--disk-cache-dir=/tmp/cache-dir')
+        chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36')
         self.driver = webdriver.Chrome(options=chrome_options, service_log_path='/tmp/chromedriver.log')
         self.state = state
@@ -197,4 +197,11 @@ if __name__ == "__main__":
     parser.add_argument('--email-address', nargs='+', default=[])
     args = parser.parse_args()
     # vaccine_slot_periodic_notifier(args.state, args.district, args.email_address, args.search_interval_seconds, args.renotification_interval_seconds)
-    vaccine_slot_notifier(args.state, args.district, args.email_address)
+    try:
+        vaccine_slot_notifier(args.state, args.district, args.email_address)
+    except Exception:
+        logger.exception("could not notify")
+    with open('/tmp/chromedriver.log') as f:
+        content = f.readlines()
+        for line in content:
+            print(line, end ="")

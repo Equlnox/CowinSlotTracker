@@ -21,8 +21,9 @@ RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
 
 # set display port to avoid crash
 ENV DISPLAY=:99
-COPY . /vaccine-notifier/
+COPY ./requirements.txt /vaccine-notifier/requirements.txt
 RUN pip install -r /vaccine-notifier/requirements.txt
+COPY . /vaccine-notifier/
 
 RUN useradd -ms /bin/bash notifier
 RUN chown -R notifier /vaccine-notifier
