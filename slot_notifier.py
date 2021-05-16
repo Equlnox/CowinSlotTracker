@@ -1,7 +1,7 @@
 from selenium import webdriver
 from slot_notifier_config import SEARCH_BY_SLIDER_XPATH, SEARCH_STATE_XPATH, SEARCH_DISTRICT_XPATH, SEARCH_BUTTON_XPATH, FILTER_BUTTON_18_PLUS_XPATH, SLOTS_TABLE_XPATH
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.options import Options
 import time
 from dataclasses import dataclass
 import logging
@@ -60,12 +60,26 @@ class GracefulKiller:
 
 class VaccineSlotFinder:
     def __init__(self, state, district):
-        options = Options()
-        options.headless = True
-        # options.add_argument("start-maximized")
-        # chrome_options.add_argument("--disable-gpu")
-        # chrome_options.add_argument("--headless")
-        self.driver = webdriver.Firefox(options=options, log_path='/tmp/geckodriver.log')
+        chrome_options = Options()
+        chrome_options.add_argument("start-maximized")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1280x1696')
+        chrome_options.add_argument('--user-data-dir=/tmp/user-data')
+        chrome_options.add_argument('--hide-scrollbars')
+        chrome_options.add_argument('--enable-logging')
+        chrome_options.add_argument('--log-level=0')
+        chrome_options.add_argument('--v=99')
+        chrome_options.add_argument('--single-process')
+        chrome_options.add_argument('--data-path=/tmp/data-path')
+        chrome_options.add_argument('--ignore-certificate-errors')
+        chrome_options.add_argument('--homedir=/tmp')
+        chrome_options.add_argument('--disk-cache-dir=/tmp/cache-dir')
+        chrome_options.add_argument('user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36')
+        self.driver = webdriver.Chrome(options=chrome_options, service_log_path='/tmp/chromedriver.log')
         self.state = state
         self.district = district
 
