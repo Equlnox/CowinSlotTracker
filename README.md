@@ -1,4 +1,6 @@
 # CowinSlotTracker
+Vaccine slot tracker which crawls https://www.cowin.gov.in/home to find available slots.
+
 ## Requirements -
 Add a secrets.env with format - 
 Follow this guide to setup your gmail account to send emails programatically - 
@@ -11,7 +13,10 @@ If you turn less secure apps off, you can directly use your GMAIL password in `G
 Otherwise create an app password and use that (https://myaccount.google.com/apppasswords)
 
 ## Usage -
-`docker build -t vaccine-notifier .`
+Build the docker image: <br>
+`docker build -t vaccine-notifier .` <br>
+
+Start vaccine notifier: <br>
 `docker run --env-file secrets.env vaccine-notifier "Madhya Pradesh" Indore --email-address myemail@domain.com`
 
 ## More info -
