@@ -29,4 +29,4 @@ RUN useradd -ms /bin/bash notifier
 RUN chown -R notifier /vaccine-notifier
 USER notifier
 WORKDIR /vaccine-notifier
-CMD ["/usr/local/bin/python", "slot_notifier.py", "Madhya Pradesh", "Jabalpur", "--email-address", "karnalprateek@gmail.com"]
+ENTRYPOINT ["/usr/local/bin/python", "slot_notifier.py"]

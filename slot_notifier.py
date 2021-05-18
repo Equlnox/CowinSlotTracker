@@ -7,6 +7,8 @@ from dataclasses import dataclass
 import logging
 import argparse
 import signal
+from lxml.html import fromstring
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -46,6 +48,7 @@ def send_email(receiver_email, slots, state, district):
         smtp.login(os.environ["GMAIL_ADDRESS"], os.environ["GMAIL_APP_PASSWORD"])
         msg = f'Subject: {subject}\n\n{body}'
         smtp.sendmail(os.environ["GMAIL_ADDRESS"], receiver_email, msg)
+    logger.info(f"Report email sent to {receiver_email}")
 
 
 class GracefulKiller:
@@ -53,9 +56,9 @@ class GracefulKiller:
   def __init__(self):
     signal.signal(signal.SIGINT, self.exit_gracefully)
     signal.signal(signal.SIGTERM, self.exit_gracefully)
-    logger.info("Kill signal receieved.")
 
   def exit_gracefully(self,signum, frame):
+    logger.info(f"Kill signal:{signum} receieved")
     self.kill_now = True
 
 class VaccineSlotFinder:
@@ -92,10 +95,34 @@ class VaccineSlotFinder:
         if len(slots_rows) == 1 and "No Vaccination center is available for booking." in slots_rows[0].text:
             return []
         return slots_rows
+    
+    def fetch_slots_rows_v2(self):
+        slots_table = self.driver.find_element_by_xpath(SLOTS_TABLE_XPATH)
+        slots_rows = fromstring(slots_table.get_attribute('innerHTML')).xpath("div")
+        if len(slots_rows) == 1 and "No Vaccination center is available for booking." in slots_rows[0].text_content():
+            return []
+        return slots_rows
 
     def fetch_coluums_of_row(self, slots_row):
         return slots_row.find_elements_by_xpath("./div/div/div[2]/ul/li")
     
+    def get_slot_count_from_column(self, column):
+        count = column.xpath("./div/div/a")[0].text_content().strip(" ")
+        if count in ["NA", "Booked"]:
+            return 0
+        return int(count)
+    
+    def get_vaccine_type_from_column(self, column):
+        return column.xpath("./div/div/div[1]")[0].text_content().strip(" ")
+
+    def fetch_colums_of_row_v2(self, slots_row):
+        return slots_row.xpath("./div/div/div[2]/ul/li")
+
+    def fetch_location_from_row_v2(self, slots_row):
+        name = slots_row.xpath("./div/div/div[1]/div/h5")[0].text_content().strip(" ")
+        details = slots_row.xpath("./div/div/div[1]/div/p")[0].text_content().strip(" ")
+        return f"{name}\n{details}"
+
     def fetch_location_from_row(self, slots_row):
         return slots_row.find_element_by_xpath("./div/div/div[1]").text
     
@@ -109,6 +136,20 @@ class VaccineSlotFinder:
                     location,
                     int(column.text.split("\n")[0])
                 ))
+        return slots
+
+    def fetch_slots_from_row_v2(self, slots_row):
+        location = self.fetch_location_from_row_v2(slots_row)
+        columns = self.fetch_colums_of_row_v2(slots_row)
+        slots = []
+        for column in columns:
+            slot_count = self.get_slot_count_from_column(column)
+            if not slot_count:
+                continue
+            slots.append(VaccineSlot(
+                location,
+                slot_count
+            ))
         return slots
 
 
@@ -129,14 +170,14 @@ class VaccineSlotFinder:
         district_element.click()
         self.driver.find_element_by_xpath(SEARCH_BUTTON_XPATH).click()
         logger.info(f"Filtered by state:{self.state} and district:{self.district}")
-        # self.driver.find_element_by_xpath(FILTER_BUTTON_18_PLUS_XPATH).click()
-        # logger.info("Filtered by age 18+")
+        self.driver.find_element_by_xpath(FILTER_BUTTON_18_PLUS_XPATH).click()
+        logger.info("Filtered by age 18+")
         time.sleep(1)
-        slots_rows = self.fetch_slots_rows()
+        slots_rows = self.fetch_slots_rows_v2()
         logger.info(f"Found {len(slots_rows)} vaccine centres in list.")
         all_slots = []
         for slots_row in slots_rows:
-            row_slots = self.fetch_slots_from_row(slots_row)
+            row_slots = self.fetch_slots_from_row_v2(slots_row)
             all_slots.extend(row_slots)
         return all_slots
 
@@ -196,12 +237,4 @@ if __name__ == "__main__":
     parser.add_argument("--renotification-interval-seconds", type=int, default=60)
     parser.add_argument('--email-address', nargs='+', default=[])
     args = parser.parse_args()
-    # vaccine_slot_periodic_notifier(args.state, args.district, args.email_address, args.search_interval_seconds, args.renotification_interval_seconds)
-    try:
-        vaccine_slot_notifier(args.state, args.district, args.email_address)
-    except Exception:
-        logger.exception("could not notify")
-    with open('/tmp/chromedriver.log') as f:
-        content = f.readlines()
-        for line in content:
-            print(line, end ="")
+    vaccine_slot_periodic_notifier(args.state, args.district, args.email_address, args.search_interval_seconds, args.renotification_interval_seconds)
