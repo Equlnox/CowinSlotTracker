@@ -1,3 +1,4 @@
 secrets.py
 secrets.env
 __pycache__/
+*.code-workspace
