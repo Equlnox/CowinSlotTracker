@@ -19,7 +19,7 @@ class VaccineSlot:
     slots_count: list
 
 
-def send_notification(title, body):
+def send_desktop_notification(title, body):
     # Taken from: https://wiki.archlinux.org/title/Desktop_notifications#Python
     import gi
     gi.require_version('Gio', '2.0')
@@ -162,7 +162,7 @@ class VaccineSlotFinder:
         # ActionChains(self.driver).move_to_element(state_element).perform()
         self.driver.execute_script("return arguments[0].scrollIntoView();", state_element)
         state_element.click()
-
+        time.sleep(1)
         self.driver.find_element_by_xpath(SEARCH_DISTRICT_XPATH).click()
         district_element = self.driver.find_elements_by_xpath(f"//*[contains(text(), '{self.district}')]")[0]
         # ActionChains(self.driver).move_to_element(district_element).perform()
@@ -222,7 +222,6 @@ def vaccine_slot_periodic_notifier(state, district, email_address, search_interv
             slots_message = "\n".join([str(slot) for slot in slots_available])
             total_slots_count = sum([slot.slots_count for slot in slots_available])
             logger.info(f"{total_slots_count} slots found. The following list of slots are available.\n{slots_message}")
-            # send_notification("Covid vaccine slot finder", f"Found total {total_slots_count} slots in {args.district}, {args.state}")
             if args.email_address:
                 send_email(args.email_address, slots_available, args.state, args.district)
             time.sleep(args.renotification_interval_seconds)
@@ -239,4 +238,4 @@ if __name__ == "__main__":
     parser.add_argument("--renotification-interval-seconds", type=int, default=60)
     parser.add_argument('--email-address', nargs='+', default=[])
     args = parser.parse_args()
-    vaccine_slot_periodic_notifier(args.state, args.district, args.email_address, args.search_interval_seconds, args.renotification_interval_seconds)
+    vaccine_slot_periodic_notifier(args.state, args.district, args.email_address, args.search_interval_seconds, args.renotification_interval_seconds, args.filter_18_44)
