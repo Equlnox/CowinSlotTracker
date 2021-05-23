@@ -153,7 +153,7 @@ class VaccineSlotFinder:
         return slots
 
 
-    def search_slots(self):
+    def search_slots(self, filter_18_44):
         self.open_homepage()
         time.sleep(2)
         self.driver.find_element_by_xpath(SEARCH_BY_SLIDER_XPATH).click()
@@ -170,8 +170,9 @@ class VaccineSlotFinder:
         district_element.click()
         self.driver.find_element_by_xpath(SEARCH_BUTTON_XPATH).click()
         logger.info(f"Filtered by state:{self.state} and district:{self.district}")
-        self.driver.find_element_by_xpath(FILTER_BUTTON_18_PLUS_XPATH).click()
-        logger.info("Filtered by age 18+")
+        if filter_18_44:
+            self.driver.find_element_by_xpath(FILTER_BUTTON_18_PLUS_XPATH).click()
+            logger.info("Filtered by age 18+")
         time.sleep(1)
         slots_rows = self.fetch_slots_rows_v2()
         logger.info(f"Found {len(slots_rows)} vaccine centres in list.")
@@ -181,12 +182,12 @@ class VaccineSlotFinder:
             all_slots.extend(row_slots)
         return all_slots
 
-def vaccine_slot_notifier(state, district, email_address):
+def vaccine_slot_notifier(state, district, email_address, filter_18_44=False):
     logger.info("Starting vaccine slot finder")
     slot_finder = VaccineSlotFinder(args.state, args.district)
     logger.info("Starting vaccince slot search.")
     try:
-        slots_available = slot_finder.search_slots()
+        slots_available = slot_finder.search_slots(filter_18_44)
     except Exception:
         slots_available = []
         logger.exception("Exception raised while searching for slots")
@@ -201,14 +202,14 @@ def vaccine_slot_notifier(state, district, email_address):
             send_email(args.email_address, slots_available, args.state, args.district)
 
 
-def vaccine_slot_periodic_notifier(state, district, email_address, search_interval_seconds, renotification_interval_seconds):
+def vaccine_slot_periodic_notifier(state, district, email_address, search_interval_seconds, renotification_interval_seconds, filter_18_44=False):
     logger.info("Starting vaccine slot finder")
     slot_finder = VaccineSlotFinder(args.state, args.district)
     killer = GracefulKiller()
     while not killer.kill_now:
         logger.info("Starting vaccince slot search.")
         try:
-            slots_available = slot_finder.search_slots()
+            slots_available = slot_finder.search_slots(filter_18_44)
         except Exception:
             slots_available = []
             logger.exception("Exception raised while searching for slots")
@@ -233,6 +234,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("state")
     parser.add_argument("district")
+    parser.add_argument('--filter-18-44', dest='filter_18_44', action='store_true')
     parser.add_argument("--search-interval-seconds", type=int, default=30)
     parser.add_argument("--renotification-interval-seconds", type=int, default=60)
     parser.add_argument('--email-address', nargs='+', default=[])
